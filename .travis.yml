@@ -2,21 +2,34 @@ sudo: required
 services:
   - docker
 
-  before_install:
-    - docker build -t eladp75/react-test -f ./client/Dockerfile.dev ./client/Dockerfile.dev
+before_install:
+  - docker build -t eladp75/react-test -f ./client/Dockerfile.dev ./client
 
-script: 
-  - docker run eladp75/react-test npm test -- --coverage
+script:
+  - docker run eladp75/react-test/react-test npm test -- --coverage
 
-after_success: 
+after_success:
   - docker build -t eladp75/multi-client ./client
   - docker build -t eladp75/multi-nginx ./nginx
   - docker build -t eladp75/multi-server ./server
   - docker build -t eladp75/multi-worker ./worker
-# Log in to docker CLI
-  - echo "$Docker_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
-# take the images and push them to docker hub
+  # Log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
   - docker push eladp75/multi-client
   - docker push eladp75/multi-nginx
   - docker push eladp75/multi-server
   - docker push eladp75/multi-worker
+
+deploy:
+  provider: elasticbeanstalk
+  region: us-west-1
+  app: multi-docker
+  env: MultiDocker-env
+  bucket_name: elasticbeanstalk-us-west-1-306476627547
+  bucket_path: docker-multi
+  on:
+    branch: master
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key:
+    secure: $AWS_SECRET_KEY
